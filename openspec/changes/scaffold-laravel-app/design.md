@@ -1,15 +1,15 @@
 ## Context
 
 - Relevant architecture: Greenfield. The repo root currently holds `docs/`, `openspec/`, `scripts/`, agent tooling dirs and `.github/` (skills, prompts). The Laravel app is created at the repo root; those directories are left alone.
-- Dependencies: Docker (only local runtime available; no PHP or Composer on the dev machine), GitHub Actions, Laravel 13, Livewire starter kit (Fortify, Livewire 4, Flux UI, Tailwind), Pest, Pint, Larastan, MySQL.
+- Dependencies: Docker (only local runtime available; no PHP or Composer on the dev machine), GitHub Actions, Laravel 13, Livewire starter kit (Fortify, Livewire 4, Flux UI, Tailwind), Pest, Pint, Larastan, MongoDB (Atlas Local locally and in CI) with `mongodb/laravel-mongodb`.
 - Interfaces/contracts touched: `composer.json` (PHP and framework constraints), `.env.example`, `compose.yaml`, `.github/workflows/ci.yml`. Later issues build on these.
 
 ## Goals / Non-Goals
 
 ### Goals
 
-- One-command local environment (Sail + MySQL) that matches production's PHP 8.3.
-- A CI gate that runs the same checks as local, against MySQL.
+- One-command local environment (Sail + MongoDB) that matches production's PHP 8.3.
+- A CI gate that runs the same checks as local, against MongoDB.
 - Test-first workflow ready: Pest installed, an example feature test per starter-kit auth flow passing.
 
 ### Non-Goals
@@ -34,16 +34,16 @@
 
 ### Decision 3: Generate the app in a container, commit the result
 
-- Chosen: Run the Laravel installer from a PHP 8.3 Docker container with a pinned `laravel/laravel` 13.x release, answering prompts non-interactively (Livewire, Pest, no WorkOS). Then install Sail with `sail:install --with=mysql`.
+- Chosen: Run the Laravel installer from a PHP 8.3 Docker container with a pinned `laravel/laravel` 13.x release, answering prompts non-interactively (Livewire, Pest, no WorkOS). Then install Sail with `sail:install --with=mongodb`.
 - Alternatives considered: Install PHP/Composer on the host; hand-assemble files.
 - Rationale: Reproducible without changing the dev machine, and keeps PHP at 8.3.
 - Trade-offs: First step is slower than a native installer. The installer defaults to the newest framework; we explicitly constrain it and verify with `composer show laravel/framework`.
 
-### Decision 4: MySQL for local, CI and tests
+### Decision 4: MongoDB (Atlas Local) for local, CI and tests
 
-- Chosen: Sail `mysql` service; CI uses a `mysql` service container; Pest feature tests use `RefreshDatabase` against MySQL (separate `testing` database).
-- Alternatives considered: SQLite in-memory for tests (faster, but diverges from production).
-- Rationale: Avoids "passes on SQLite, fails on MySQL" for migrations and collation. Version matched to the host once known (default 8.0).
+- Chosen: Architecture decision by Doug to use MongoDB Atlas in production. `mongodb/laravel-mongodb` ^5.11 provides the `mongodb` connection (set as default), Eloquent base classes and Schema builder. Sail uses its `mongodb` service (`mongodb/mongodb-atlas-local`, a single-node replica set, so transactions work); CI uses the same image as a service container. Tests use a separate `testing` database and a `RefreshMongoDatabase` trait (drops the database between tests) in place of `RefreshDatabase`. The `User` model extends `MongoDB\Laravel\Auth\User`. Cache and queue use the package's `mongodb` drivers and sessions move off SQL tables.
+- Alternatives considered: MySQL (original plan; mismatched with the Atlas decision); a plain `mongo` image (no Atlas parity); SQLite for tests (diverges from production).
+- Rationale: Local, CI and production all speak MongoDB, so no "passes on one engine, fails on another". `ext-mongodb` is added to the Sail runtime and the CI PHP setup.
 - Trade-offs: Slower test runs; mitigated by running tests in parallel later if needed.
 
 ### Decision 5: Pest as the test framework
@@ -55,17 +55,24 @@
 
 ### Decision 6: Quality tools: Pint (check mode) and Larastan
 
-- Chosen: `pint --test` and `phpstan analyse` with Larastan at level 5 initially, config committed; both run locally via composer scripts and in CI.
+- Chosen: `pint --test` and `phpstan analyse` with Larastan at level 7 (the starter kit's shipped level), config committed; both run locally via composer scripts and in CI.
 - Alternatives considered: PHP_CodeSniffer; higher PHPStan level from the start.
-- Rationale: Pint is Laravel's default; level 5 passes on generated code without noise and can be raised later.
-- Trade-offs: Lower level misses some issues at first.
+- Rationale: Pint is Laravel's default; level 7 passes on the generated code and already catches most type issues.
+- Trade-offs: Level 7 may need baseline entries as MongoDB models are added.
 
 ### Decision 7: Single CI workflow with cached dependencies
 
-- Chosen: `.github/workflows/ci.yml` triggered on `pull_request` and push to `main`. Steps: checkout, setup PHP 8.3 (required extensions), setup Node and build assets, Composer install with cache, copy `.env.example`, generate key, Pint, Larastan, Pest against the MySQL service with a health check.
+- Chosen: `.github/workflows/ci.yml` triggered on `pull_request` and push to `main`. Steps: checkout, setup PHP 8.3 (required extensions including `mongodb`), setup Node and build assets, Composer install with cache, copy `.env.example`, generate key, Pint, Larastan, Pest against the MongoDB service with a health check.
 - Alternatives considered: Separate workflows per check; running inside Sail in CI.
 - Rationale: One status check is easy to make required; native `setup-php` is faster than running Docker Compose in CI.
-- Trade-offs: CI environment differs slightly from Sail (mitigated by identical PHP and MySQL versions).
+- Trade-offs: CI environment differs slightly from Sail (mitigated by identical PHP and MongoDB image versions).
+
+### Decision 8: Passkeys disabled
+
+- Chosen: Comment out `Features::passkeys()` in `config/fortify.php`, guard the passkey UI with `Features::canManagePasskeys()`, and drop the passkeys migration.
+- Alternatives considered: A MongoDB-backed `Passkey` model (extra scope, not required by issues #2 to #4); switching the whole kit to SQL.
+- Rationale: Fortify passkeys store credentials in a SQL-backed Eloquent model that fails on MongoDB. Password plus TOTP two-factor covers the requirements.
+- Trade-offs: No passwordless login. Can be revisited as its own change.
 
 ## Proposal to Design Mapping
 
@@ -75,13 +82,13 @@
 - Proposal element: Official starter kit with 2FA
   - Design decision: Decision 2
   - Validation approach: Starter-kit auth tests (login, reset, 2FA challenge routes) pass in Pest.
-- Proposal element: Sail with MySQL
+- Proposal element: Sail with MongoDB
   - Design decision: Decisions 3 and 4
-  - Validation approach: `sail up -d` then `sail artisan migrate` then `sail artisan test` succeed.
+  - Validation approach: `sail up -d` then `sail artisan test` succeed, including the kit's auth tests (register, login, password reset) persisting users in MongoDB.
 - Proposal element: Pest, Pint, Larastan
   - Design decision: Decisions 5 and 6
   - Validation approach: Composer scripts `test`, `lint`, `analyse` exit 0.
-- Proposal element: GitHub Actions with MySQL
+- Proposal element: GitHub Actions with MongoDB
   - Design decision: Decision 7
   - Validation approach: Workflow runs green on the PR; failing a check fails the job.
 
@@ -91,10 +98,10 @@
   - Design element: Sail `compose.yaml`.
   - Acceptance criteria reference: specs/dev-environment/spec.md
   - Testability notes: Manual verification plus CI smoke test of `/` returning 200.
-- Requirement: Tests run against MySQL.
+- Requirement: Tests run against MongoDB.
   - Design element: Decision 4.
   - Acceptance criteria reference: specs/dev-environment/spec.md, specs/ci-pipeline/spec.md
-  - Testability notes: A test asserts the default connection driver is `mysql`.
+  - Testability notes: A test asserts the default connection driver is `mongodb`.
 - Requirement: CI blocks merges on style, static analysis, or test failures.
   - Design element: Decision 7.
   - Acceptance criteria reference: specs/ci-pipeline/spec.md
@@ -103,7 +110,7 @@
 ## Non-Functional Requirements Mapping
 
 - Requirement category: reliability
-  - Requirement: Local, CI and host share PHP 8.3 and compatible MySQL.
+  - Requirement: Local, CI and host share PHP 8.3 and the same MongoDB major version.
   - Design element: Decisions 1 and 4.
   - Acceptance criteria reference: specs/dev-environment/spec.md
   - Testability notes: Version assertions in CI.
@@ -146,6 +153,7 @@
 
 ## Open Questions
 
-- Host MySQL/MariaDB version (default 8.0 until confirmed).
+- Host `ext-mongodb` availability and outbound access to Atlas (blocks #8 only).
+- Exact cache/session/queue drivers on MongoDB are fixed during implementation and proven by the kit's auth tests.
 - Livewire vs Inertia kit confirmation.
-- Larastan starting level (default 5).
+- Larastan level: resolved, keep the kit's level 7.

@@ -1,6 +1,6 @@
 ## Purpose
 
-Defines the GitHub Actions quality gate for the Address Book app: style, static analysis and tests against MySQL on every pull request and push to main, so no change merges without passing the same checks developers run locally.
+Defines the GitHub Actions quality gate for the Address Book app: style, static analysis and tests against MongoDB on every pull request and push to main, so no change merges without passing the same checks developers run locally.
 
 ## ADDED Requirements
 
@@ -22,9 +22,9 @@ The system SHALL run the CI workflow on every pull request and on every push to 
 - **When** the push event fires
 - **Then** the CI workflow runs for that commit
 
-### Requirement: CI runs the quality checks against MySQL on PHP 8.3
+### Requirement: CI runs the quality checks against MongoDB on PHP 8.3
 
-The system SHALL run Pint in check mode, Larastan and the Pest suite on PHP 8.3 with a MySQL service container.
+The system SHALL run Pint in check mode, Larastan and the Pest suite on PHP 8.3 with `ext-mongodb` and a MongoDB (Atlas Local) service container.
 
 #### Scenario: All checks pass
 
@@ -46,8 +46,8 @@ The system SHALL run Pint in check mode, Larastan and the Pest suite on PHP 8.3 
 
 #### Scenario: Database is ready before tests
 
-- **Given** the MySQL service container is starting
-- **When** the workflow reaches the migration step
+- **Given** the MongoDB service container is starting
+- **When** the workflow reaches the test step
 - **Then** it waits on the container health check before connecting
 
 ### Requirement: CI builds front-end assets
@@ -82,6 +82,6 @@ The system SHALL meet the non-functional criterion below.
 
 ## Traceability
 
-- Proposal element (GitHub Actions with MySQL) -> all requirements above
-- Design Decision 7 -> CI triggers, steps and MySQL service; Decision 6 -> Pint and Larastan steps
+- Proposal element (GitHub Actions with MongoDB) -> all requirements above
+- Design Decision 7 -> CI triggers, steps and MongoDB service; Decision 6 -> Pint and Larastan steps
 - Requirement -> Task(s): see `tasks.md` CI group and `tests.md`

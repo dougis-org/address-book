@@ -1,6 +1,6 @@
 ## Purpose
 
-Defines the local development environment for the Address Book app: a Laravel 13 application pinned to PHP 8.3, run through Laravel Sail with MySQL, and tested with Pest, so every developer and CI runs the same stack as production.
+Defines the local development environment for the Address Book app: a Laravel 13 application pinned to PHP 8.3, run through Laravel Sail with MongoDB (Atlas Local), and tested with Pest, so every developer and CI runs the same stack as production.
 
 ## ADDED Requirements
 
@@ -38,15 +38,15 @@ The system SHALL be created from the official Laravel Livewire starter kit (non-
 - **When** its dependencies are inspected
 - **Then** `livewire/flux-pro` is not present
 
-### Requirement: One-command local environment with MySQL
+### Requirement: One-command local environment with MongoDB
 
-The system SHALL provide a Sail configuration with a MySQL service so that `./vendor/bin/sail up -d` starts the app and database ready for migrations.
+The system SHALL provide a Sail configuration with a MongoDB (Atlas Local) service so that `./vendor/bin/sail up -d` starts the app and database ready to use.
 
 #### Scenario: Environment starts
 
 - **Given** Docker is running and `.env` is copied from `.env.example`
-- **When** `./vendor/bin/sail up -d` and `sail artisan migrate` run
-- **Then** migrations complete and the home page returns HTTP 200
+- **When** `./vendor/bin/sail up -d` runs
+- **Then** the app connects to MongoDB and the home page returns HTTP 200
 
 #### Scenario: Missing configuration is documented
 
@@ -54,9 +54,9 @@ The system SHALL provide a Sail configuration with a MySQL service so that `./ve
 - **When** they follow the setup section
 - **Then** every command needed to run the app and tests is listed
 
-### Requirement: Tests run with Pest against MySQL
+### Requirement: Tests run with Pest against MongoDB
 
-The system SHALL use Pest as its test framework and SHALL run the test suite against a MySQL database, not SQLite.
+The system SHALL use Pest as its test framework and SHALL run the test suite against a MongoDB database, not SQLite or MySQL.
 
 #### Scenario: Suite passes locally
 
@@ -64,11 +64,11 @@ The system SHALL use Pest as its test framework and SHALL run the test suite aga
 - **When** `./vendor/bin/sail artisan test` runs
 - **Then** all tests pass
 
-#### Scenario: Tests use MySQL
+#### Scenario: Tests use MongoDB
 
 - **Given** the test environment configuration
 - **When** the default database connection is read inside a test
-- **Then** its driver is `mysql`
+- **Then** its driver is `mongodb`
 
 ### Requirement: Repository hygiene
 
@@ -94,8 +94,8 @@ The system SHALL meet the non-functional criterion below.
 
 - Proposal element (PHP 8.3 pinned) -> Requirement: Laravel 13 application on PHP 8.3
 - Proposal element (starter kit) -> Requirement: Official Livewire starter kit with Fortify authentication
-- Proposal element (Sail with MySQL) -> Requirement: One-command local environment with MySQL
-- Proposal element (Pest) -> Requirement: Tests run with Pest against MySQL
+- Proposal element (Sail with MongoDB) -> Requirement: One-command local environment with MongoDB
+- Proposal element (Pest) -> Requirement: Tests run with Pest against MongoDB
 - Design Decisions 1 -> PHP requirement; 2 -> starter kit; 3 and 4 -> environment and tests; 5 -> Pest
 - Requirement -> Task(s): see `tasks.md` Execution groups 1 to 5 and `tests.md`
 - Security NFAC: see functional scenario: Secrets not tracked

@@ -169,9 +169,9 @@ return [
             'confirmPassword' => true,
             // 'window' => 0
         ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        // Passkeys are disabled: the feature stores credentials in a SQL-backed
+        // Eloquent model, which does not work on MongoDB.
+        // Features::passkeys(['confirmPassword' => true]),
     ],
 
 ];
