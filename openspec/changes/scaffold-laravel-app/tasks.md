@@ -50,7 +50,7 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 - [x] **Test first:** run `pint --test` and `phpstan` before configuring them; verify they fail or are missing
 - [x] Add Pint config (`pint.json`) and Larastan (`phpstan.neon`, level 7 as shipped by the kit); verify both exit 0 on the scaffold
 - [x] Add composer scripts `lint`, `analyse`, `test`; verify each runs from `sail composer`
-- [ ] Write README: setup, run, test, lint, version policy (PHP 8.3); verify a clean-clone walk-through of the README works
+- [x] Write README: setup, run, test, lint, version policy (PHP 8.3); verify a clean-clone walk-through of the README works
 
 ### Group 4: GitHub Actions CI (ci-pipeline)
 
@@ -72,7 +72,7 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 - [x] Run asset build: `./vendor/bin/sail npm run build`
 - [x] Run `openspec validate scaffold-laravel-app --strict`
 - [x] Security/quality: confirm `.env` is untracked and no secrets are in the diff
-- [ ] All completed tasks marked complete
+- [x] All completed tasks marked complete
 
 ## Remote push validation
 
@@ -85,7 +85,7 @@ If any required step fails, fix it before pushing.
 
 ## PR and Merge
 
-- [ ] Confirm the `openspec-review-code` sub-agent ran and all findings were addressed before the final commit
+- [x] Confirm the `openspec-review-code` sub-agent ran and all findings were addressed before the final commit
 - [ ] Commit all changes and push to the working branch
 - [ ] Open a PR from `scaffold-laravel-app` to `main`; the body MUST include `Closes #1`
 - [ ] **Issue lifecycle: mark in-review:** `gh issue edit 1 --add-label "in-review" --remove-label "in-progress"`, then move the project item to "In Review" (same discovery as above; warn and skip if not found)
