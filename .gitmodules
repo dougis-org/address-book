@@ -1,0 +1,3 @@
+[submodule ".github/openspec-shared"]
+	path = .github/openspec-shared
+	url = https://github.com/dougis-org/openspec-shared
