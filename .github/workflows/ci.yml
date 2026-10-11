@@ -43,7 +43,7 @@ jobs:
         with:
           php-version: '8.3'
           extensions: mbstring, intl, mongodb, pcntl
-          coverage: none
+          coverage: pcov
           tools: composer:v2
 
       - name: Get Composer cache directory
@@ -83,5 +83,16 @@ jobs:
       - name: Static analysis (Larastan)
         run: composer analyse
 
-      - name: Tests (Pest)
-        run: composer test
+      - name: Tests (Pest) with coverage
+        run: |
+          php artisan config:clear --ansi
+          php artisan test --coverage-clover=coverage/clover.xml
+
+      # Secrets are unavailable to fork PRs, so the upload is skipped there.
+      - name: Upload coverage to Codacy
+        if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
+        with:
+          api-token: ${{ secrets.CODACY_API_TOKEN }}
+          coverage-reports: coverage/clover.xml
+          language: PHP

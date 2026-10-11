@@ -36,3 +36,4 @@ yarn-error.log
 
 # Git worktrees for parallel changes
 .worktrees/
+/coverage
