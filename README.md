@@ -31,12 +31,14 @@ Docker with Compose. No local PHP, Composer or Node is needed.
 git clone <repo-url> address-book && cd address-book
 cp .env.example .env
 
-# Install PHP dependencies without a local PHP (uses a throwaway container)
+# Fetch Sail without a local PHP (throwaway container; it has no mongodb extension,
+# so skip the scripts and platform checks here)
 docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/var/www/html" -w /var/www/html \
-    laravelsail/php83-composer:latest composer install --ignore-platform-reqs
+    laravelsail/php83-composer:latest composer install --ignore-platform-reqs --no-scripts
 
 export WWWUSER=$(id -u) WWWGROUP=$(id -g)
 ./vendor/bin/sail up -d
+./vendor/bin/sail composer install
 ./vendor/bin/sail artisan key:generate
 ./vendor/bin/sail artisan migrate
 ./vendor/bin/sail npm install
