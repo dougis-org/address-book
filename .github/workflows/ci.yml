@@ -86,6 +86,7 @@ jobs:
       - name: Tests (Pest) with coverage
         run: |
           php artisan config:clear --ansi
+          mkdir -p coverage
           php artisan test --coverage-clover=coverage/clover.xml
 
       # Secrets are unavailable to fork PRs, so the upload is skipped there.
