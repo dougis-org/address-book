@@ -11,30 +11,30 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 
 ## Preparation
 
-- [ ] **Step 1: Sync default branch:** from the primary checkout, `git fetch origin` and confirm `origin/main` is current
-- [ ] **Step 2: Working branch published:** `git branch -r` lists `origin/scaffold-laravel-app` (created during propose); if missing, `git push -u origin scaffold-laravel-app`
-- [ ] **Step 3: Docs/proposal approved:** owner has approved `proposal.md`, `design.md` and `specs/`
+- [x] **Step 1: Sync default branch:** from the primary checkout, `git fetch origin` and confirm `origin/main` is current
+- [x] **Step 2: Working branch published:** `git branch -r` lists `origin/scaffold-laravel-app` (created during propose); if missing, `git push -u origin scaffold-laravel-app`
+- [x] **Step 3: Docs/proposal approved:** owner has approved `proposal.md`, `design.md` and `specs/`
 
 ## Preflight
 
-- [ ] **Verify `pr-review-toolkit:review-pr` is available**: check the skills list for `pr-review-toolkit:review-pr`. If missing, halt, tell the user the plugin is required, give install guidance, and do not proceed until they confirm.
-- [ ] **Verify Docker works:** `docker version` and `docker compose version` succeed
-- [ ] **Confirm open questions:** host MySQL version noted (default 8.0), starter-kit choice (Livewire) confirmed
+- [x] **Verify `pr-review-toolkit:review-pr` is available**: check the skills list for `pr-review-toolkit:review-pr`. If missing, halt, tell the user the plugin is required, give install guidance, and do not proceed until they confirm.
+- [x] **Verify Docker works:** `docker version` and `docker compose version` succeed
+- [x] **Confirm open questions:** host MySQL version noted (default 8.0), starter-kit choice (Livewire) confirmed
 
 ## Execution
 
-- [ ] **Step 1: Confirm worktree:** `git worktree list` shows `.worktrees/scaffold-laravel-app`; `cd` into it. Never check out another branch in the primary checkout.
-- [ ] **Step 2: Branch on remote:** `git ls-remote --heads origin scaffold-laravel-app` returns a ref
-- [ ] **Issue lifecycle: mark in-progress:** run `gh issue edit 1 --add-label "in-progress"`; discover the GitHub Project (`gh project list --owner dougis-org --format json`), resolve the "In Progress" option via `gh project field-list`, move the item with `gh project item-edit`. If no project item is found, warn and continue. If the token lacks `project` scope, tell the user to run `gh auth refresh -s project` and skip only the project move.
+- [x] **Step 1: Confirm worktree:** `git worktree list` shows `.worktrees/scaffold-laravel-app`; `cd` into it. Never check out another branch in the primary checkout.
+- [x] **Step 2: Branch on remote:** `git ls-remote --heads origin scaffold-laravel-app` returns a ref
+- [x] **Issue lifecycle: mark in-progress:** run `gh issue edit 1 --add-label "in-progress"`; discover the GitHub Project (`gh project list --owner dougis-org --format json`), resolve the "In Progress" option via `gh project field-list`, move the item with `gh project item-edit`. If no project item is found, warn and continue. If the token lacks `project` scope, tell the user to run `gh auth refresh -s project` and skip only the project move.
 
 ### Group 1: Application scaffold (dev-environment)
 
-- [ ] **Test first:** write the failing checks in `tests.md` section 1 (version, route list, no `flux-pro`); verify they fail with no app present
-- [ ] Generate the app with the Laravel installer in a PHP 8.3 container: Livewire starter kit, Pest, no WorkOS, Laravel 13.x; verify `composer show laravel/framework` prints 13.x
-- [ ] Set `"php": "^8.3"` and `config.platform.php` 8.3 in `composer.json`; verify `composer update --dry-run` stays on 13.x
-- [ ] Confirm no `livewire/flux-pro` in `composer.json`; verify with `grep`
-- [ ] Commit the pristine generated app separately from later config edits; verify with `git log --stat`
-- [ ] Group verification: tests from section 1 pass
+- [x] **Test first:** write the failing checks in `tests.md` section 1 (version, route list, no `flux-pro`); verify they fail with no app present
+- [x] Generate the app with the Laravel installer in a PHP 8.3 container: Livewire starter kit, Pest, no WorkOS, Laravel 13.x; verify `composer show laravel/framework` prints 13.x
+- [x] Set `"php": "^8.3"` and `config.platform.php` 8.3 in `composer.json`; verify `composer update --dry-run` stays on 13.x
+- [x] Confirm no `livewire/flux-pro` in `composer.json`; verify with `grep`
+- [x] Commit the pristine generated app separately from later config edits; verify with `git log --stat`
+- [x] Group verification: tests from section 1 pass
 
 ### Group 2: Sail and MySQL (dev-environment)
 
