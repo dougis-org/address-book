@@ -108,3 +108,7 @@ test('correct password must be provided to update password', function () {
 
     $response->assertHasErrors(['current_password']);
 });
+
+test('passkey discovery endpoint is not advertised while passkeys are disabled', function () {
+    $this->get('/.well-known/passkey-endpoints')->assertNotFound();
+});

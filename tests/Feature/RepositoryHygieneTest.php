@@ -6,6 +6,8 @@ test('.env is not tracked by git', function () {
     $git = new Process(['git', 'ls-files', '--', '.env'], base_path());
     $git->run();
 
+    // Skipped inside Sail when the checkout is a git worktree (its git metadata
+    // is not mounted); this check runs for real in CI.
     if (! $git->isSuccessful()) {
         $this->markTestSkipped('Not inside a usable git checkout.');
     }
