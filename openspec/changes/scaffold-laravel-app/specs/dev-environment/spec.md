@@ -1,24 +1,24 @@
 ## Purpose
 
-Defines the local development environment for the Address Book app: a Laravel 12 application pinned to PHP 8.2, run through Laravel Sail with MySQL, and tested with Pest, so every developer and CI runs the same stack as production.
+Defines the local development environment for the Address Book app: a Laravel 13 application pinned to PHP 8.3, run through Laravel Sail with MySQL, and tested with Pest, so every developer and CI runs the same stack as production.
 
 ## ADDED Requirements
 
 This document details *changes* to requirements and is additive to the [`design.md`](../../design.md) document, not a replacement.
 
-### Requirement: Laravel 12 application on PHP 8.2
+### Requirement: Laravel 13 application on PHP 8.3
 
-The system SHALL be a Laravel 12 application whose `composer.json` requires PHP `^8.2` and sets `config.platform.php` to 8.2, so dependencies resolve for the production PHP version.
+The system SHALL be a Laravel 13 application whose `composer.json` requires PHP `^8.3` and sets `config.platform.php` to 8.3, so dependencies resolve for the production PHP version.
 
-#### Scenario: Dependencies resolve on PHP 8.2
+#### Scenario: Dependencies resolve on PHP 8.3
 
 - **Given** a fresh checkout with `composer.lock` committed
-- **When** `composer install` runs on PHP 8.2
-- **Then** it succeeds and `laravel/framework` is a 12.x release
+- **When** `composer install` runs on PHP 8.3
+- **Then** it succeeds and `laravel/framework` is a 13.x release
 
 #### Scenario: Newer-PHP-only dependency rejected
 
-- **Given** a package that requires PHP 8.3 or newer
+- **Given** a package that requires PHP 8.4 or newer
 - **When** it is added with `composer require`
 - **Then** Composer refuses to install it because of the platform pin
 
@@ -88,11 +88,11 @@ The system SHALL meet the non-functional criterion below.
 
 - **Given** local Sail, CI and the host
 - **When** the PHP minor version is compared
-- **Then** all three report 8.2
+- **Then** all three report 8.3
 
 ## Traceability
 
-- Proposal element (PHP 8.2 pinned) -> Requirement: Laravel 12 application on PHP 8.2
+- Proposal element (PHP 8.3 pinned) -> Requirement: Laravel 13 application on PHP 8.3
 - Proposal element (starter kit) -> Requirement: Official Livewire starter kit with Fortify authentication
 - Proposal element (Sail with MySQL) -> Requirement: One-command local environment with MySQL
 - Proposal element (Pest) -> Requirement: Tests run with Pest against MySQL

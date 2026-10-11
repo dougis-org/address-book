@@ -22,9 +22,9 @@ The system SHALL run the CI workflow on every pull request and on every push to 
 - **When** the push event fires
 - **Then** the CI workflow runs for that commit
 
-### Requirement: CI runs the quality checks against MySQL on PHP 8.2
+### Requirement: CI runs the quality checks against MySQL on PHP 8.3
 
-The system SHALL run Pint in check mode, Larastan and the Pest suite on PHP 8.2 with a MySQL service container.
+The system SHALL run Pint in check mode, Larastan and the Pest suite on PHP 8.3 with a MySQL service container.
 
 #### Scenario: All checks pass
 
