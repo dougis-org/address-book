@@ -21,8 +21,8 @@ For each task in `tasks.md`:
 
 ### 1. Application scaffold (Tasks Group 1; spec: dev-environment)
 
-- [ ] `tests/Feature/PlatformTest.php`: PHP version is 8.2.x (`PHP_VERSION`), maps to scenario "Dependencies resolve on PHP 8.2"
-- [ ] `tests/Feature/PlatformTest.php`: installed Laravel major version is 12 (`app()->version()` starts with `12.`)
+- [ ] `tests/Feature/PlatformTest.php`: PHP version is 8.3.x (`PHP_VERSION`), maps to scenario "Dependencies resolve on PHP 8.3"
+- [ ] `tests/Feature/PlatformTest.php`: installed Laravel major version is 13 (`app()->version()` starts with `13.`)
 - [ ] `tests/Feature/AuthRoutesTest.php`: routes `login`, `logout`, `password.request`, `password.reset` and `two-factor.login` exist, maps to "Auth routes registered"
 - [ ] `tests/Feature/DependencyPolicyTest.php`: `composer.json` does not require `livewire/flux-pro`, maps to "No paid UI dependency"
 - [ ] Shell check (documented in README): `composer require` of a package needing PHP 8.3 is refused, maps to "Newer-PHP-only dependency rejected"

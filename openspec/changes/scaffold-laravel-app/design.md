@@ -1,14 +1,14 @@
 ## Context
 
 - Relevant architecture: Greenfield. The repo root currently holds `docs/`, `openspec/`, `scripts/`, agent tooling dirs and `.github/` (skills, prompts). The Laravel app is created at the repo root; those directories are left alone.
-- Dependencies: Docker (only local runtime available; no PHP or Composer on the dev machine), GitHub Actions, Laravel 12, Livewire starter kit (Fortify, Livewire 4, Flux UI, Tailwind), Pest, Pint, Larastan, MySQL.
+- Dependencies: Docker (only local runtime available; no PHP or Composer on the dev machine), GitHub Actions, Laravel 13, Livewire starter kit (Fortify, Livewire 4, Flux UI, Tailwind), Pest, Pint, Larastan, MySQL.
 - Interfaces/contracts touched: `composer.json` (PHP and framework constraints), `.env.example`, `compose.yaml`, `.github/workflows/ci.yml`. Later issues build on these.
 
 ## Goals / Non-Goals
 
 ### Goals
 
-- One-command local environment (Sail + MySQL) that matches production's PHP 8.2.
+- One-command local environment (Sail + MySQL) that matches production's PHP 8.3.
 - A CI gate that runs the same checks as local, against MySQL.
 - Test-first workflow ready: Pest installed, an example feature test per starter-kit auth flow passing.
 
@@ -18,12 +18,12 @@
 
 ## Decisions
 
-### Decision 1: Laravel 12 on PHP 8.2, pinned in three places
+### Decision 1: Laravel 13 on PHP 8.3, pinned in three places
 
-- Chosen: `composer.json` has `"php": "^8.2"` and `config.platform.php = "8.2.0"`; Sail runtime is `8.2`; CI uses `shivammathur/setup-php` with `8.2`.
-- Alternatives considered: Laravel 13 (needs PHP 8.3, host runs 8.2); unpinned versions.
-- Rationale: Composer resolves dependencies for the platform PHP, so a dependency that needs 8.3 can't slip in and break the host.
-- Trade-offs: Upgrade to Laravel 13 later is a separate change, once the host offers 8.3.
+- Chosen: `composer.json` has `"php": "^8.3"` and `config.platform.php = "8.3.0"`; Sail runtime is `8.3`; CI uses `shivammathur/setup-php` with `8.3`.
+- Alternatives considered: Laravel 12 on PHP 8.2 (matches today's host, but its Livewire kit has no Fortify/2FA); unpinned versions.
+- Rationale: Latest Laravel (13; no 14 exists) and the Fortify-based kit with 2FA. Composer resolves dependencies for the platform PHP, so a dependency that needs 8.4 can't slip in.
+- Trade-offs: The host currently runs PHP 8.2, so deployment (#8) needs the host upgraded to 8.3 first.
 
 ### Decision 2: Livewire starter kit (non-WorkOS)
 
@@ -34,9 +34,9 @@
 
 ### Decision 3: Generate the app in a container, commit the result
 
-- Chosen: Run the Laravel installer from a PHP 8.2 Docker container with a pinned `laravel/laravel` 12.x release, answering prompts non-interactively (Livewire, Pest, no WorkOS). Then install Sail with `sail:install --with=mysql`.
+- Chosen: Run the Laravel installer from a PHP 8.3 Docker container with a pinned `laravel/laravel` 13.x release, answering prompts non-interactively (Livewire, Pest, no WorkOS). Then install Sail with `sail:install --with=mysql`.
 - Alternatives considered: Install PHP/Composer on the host; hand-assemble files.
-- Rationale: Reproducible without changing the dev machine, and keeps PHP at 8.2.
+- Rationale: Reproducible without changing the dev machine, and keeps PHP at 8.3.
 - Trade-offs: First step is slower than a native installer. The installer defaults to the newest framework; we explicitly constrain it and verify with `composer show laravel/framework`.
 
 ### Decision 4: MySQL for local, CI and tests
@@ -62,16 +62,16 @@
 
 ### Decision 7: Single CI workflow with cached dependencies
 
-- Chosen: `.github/workflows/ci.yml` triggered on `pull_request` and push to `main`. Steps: checkout, setup PHP 8.2 (required extensions), setup Node and build assets, Composer install with cache, copy `.env.example`, generate key, Pint, Larastan, Pest against the MySQL service with a health check.
+- Chosen: `.github/workflows/ci.yml` triggered on `pull_request` and push to `main`. Steps: checkout, setup PHP 8.3 (required extensions), setup Node and build assets, Composer install with cache, copy `.env.example`, generate key, Pint, Larastan, Pest against the MySQL service with a health check.
 - Alternatives considered: Separate workflows per check; running inside Sail in CI.
 - Rationale: One status check is easy to make required; native `setup-php` is faster than running Docker Compose in CI.
 - Trade-offs: CI environment differs slightly from Sail (mitigated by identical PHP and MySQL versions).
 
 ## Proposal to Design Mapping
 
-- Proposal element: PHP 8.2 pinned everywhere
+- Proposal element: PHP 8.3 pinned everywhere
   - Design decision: Decision 1
-  - Validation approach: CI fails if the lockfile needs a newer PHP; test asserts `PHP_VERSION` is 8.2 in CI and Sail.
+  - Validation approach: CI fails if the lockfile needs a newer PHP; test asserts `PHP_VERSION` is 8.3 in CI and Sail.
 - Proposal element: Official starter kit with 2FA
   - Design decision: Decision 2
   - Validation approach: Starter-kit auth tests (login, reset, 2FA challenge routes) pass in Pest.
@@ -103,7 +103,7 @@
 ## Non-Functional Requirements Mapping
 
 - Requirement category: reliability
-  - Requirement: Local, CI and host share PHP 8.2 and compatible MySQL.
+  - Requirement: Local, CI and host share PHP 8.3 and compatible MySQL.
   - Design element: Decisions 1 and 4.
   - Acceptance criteria reference: specs/dev-environment/spec.md
   - Testability notes: Version assertions in CI.

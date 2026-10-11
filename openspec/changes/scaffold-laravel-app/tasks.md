@@ -30,8 +30,8 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 ### Group 1: Application scaffold (dev-environment)
 
 - [ ] **Test first:** write the failing checks in `tests.md` section 1 (version, route list, no `flux-pro`); verify they fail with no app present
-- [ ] Generate the app with the Laravel installer in a PHP 8.2 container: Livewire starter kit, Pest, no WorkOS, Laravel 12.x; verify `composer show laravel/framework` prints 12.x
-- [ ] Set `"php": "^8.2"` and `config.platform.php` 8.2 in `composer.json`; verify `composer update --dry-run` stays on 12.x
+- [ ] Generate the app with the Laravel installer in a PHP 8.3 container: Livewire starter kit, Pest, no WorkOS, Laravel 13.x; verify `composer show laravel/framework` prints 13.x
+- [ ] Set `"php": "^8.3"` and `config.platform.php` 8.3 in `composer.json`; verify `composer update --dry-run` stays on 13.x
 - [ ] Confirm no `livewire/flux-pro` in `composer.json`; verify with `grep`
 - [ ] Commit the pristine generated app separately from later config edits; verify with `git log --stat`
 - [ ] Group verification: tests from section 1 pass
@@ -39,7 +39,7 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 ### Group 2: Sail and MySQL (dev-environment)
 
 - [ ] **Test first:** write the failing database-driver test (`tests.md` section 2); verify it fails
-- [ ] Install Sail with MySQL (`sail:install --with=mysql`), runtime PHP 8.2; verify `compose.yaml` has `mysql` service and `8.2` runtime
+- [ ] Install Sail with MySQL (`sail:install --with=mysql`), runtime PHP 8.3; verify `compose.yaml` has `mysql` service and `8.3` runtime
 - [ ] Update `.env.example` for MySQL (placeholders only) and add a `testing` database; verify `sail up -d && sail artisan migrate` succeeds
 - [ ] Configure Pest to run against MySQL (`phpunit.xml` env); verify `sail artisan test` passes and the driver test is green
 - [ ] Add `.worktrees/` to `.gitignore`; verify `git check-ignore .worktrees` succeeds
@@ -49,12 +49,12 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 - [ ] **Test first:** run `pint --test` and `phpstan` before configuring them; verify they fail or are missing
 - [ ] Add Pint config (`pint.json`) and Larastan (`phpstan.neon`, level 5); verify both exit 0 on the scaffold
 - [ ] Add composer scripts `lint`, `analyse`, `test`; verify each runs from `sail composer`
-- [ ] Write README: setup, run, test, lint, version policy (PHP 8.2); verify a clean-clone walk-through of the README works
+- [ ] Write README: setup, run, test, lint, version policy (PHP 8.3); verify a clean-clone walk-through of the README works
 
 ### Group 4: GitHub Actions CI (ci-pipeline)
 
 - [ ] **Test first:** open a draft PR with a deliberately failing check or push a branch with a lint error; verify the missing workflow means no CI result (red/absent baseline)
-- [ ] Write `.github/workflows/ci.yml`: triggers on pull_request and push to main, PHP 8.2 with required extensions, MySQL service with health check, Composer and npm caches, asset build, Pint, Larastan, Pest
+- [ ] Write `.github/workflows/ci.yml`: triggers on pull_request and push to main, PHP 8.3 with required extensions, MySQL service with health check, Composer and npm caches, asset build, Pint, Larastan, Pest
 - [ ] Verify the workflow is green on the PR
 - [ ] Verify a deliberate lint error and a deliberate failing test each fail CI on a throwaway branch (delete the branch afterwards)
 - [ ] Verify the workflow uses no repository secrets (`grep -n secrets .github/workflows/ci.yml` returns nothing)
