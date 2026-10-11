@@ -12,9 +12,6 @@ beforeEach(function () {
         'confirm' => true,
         'confirmPassword' => true,
     ]);
-    Features::passkeys([
-        'confirmPassword' => true,
-    ]);
 });
 
 test('security settings page can be rendered', function () {
@@ -26,8 +23,8 @@ test('security settings page can be rendered', function () {
 
     $response->assertOk();
 
-    $response->assertSee('Passkeys');
-    $response->assertSee('No passkeys yet');
+    // Passkeys are disabled on MongoDB (see config/fortify.php).
+    $response->assertDontSee('Manage your passkeys for passwordless sign-in');
     $response->assertSee('Two-factor authentication');
     $response->assertSee('Enable 2FA');
 });

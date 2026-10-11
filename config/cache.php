@@ -34,6 +34,16 @@ return [
 
     'stores' => [
 
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'connection' => 'mongodb',
+            'collection' => 'cache',
+            'lock_connection' => 'mongodb',
+            'lock_collection' => 'cache_locks',
+            'lock_lottery' => [2, 100],
+            'lock_timeout' => 86400,
+        ],
+
         'array' => [
             'driver' => 'array',
             'serialize' => false,

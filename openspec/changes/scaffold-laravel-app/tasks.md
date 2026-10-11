@@ -19,7 +19,7 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 
 - [x] **Verify `pr-review-toolkit:review-pr` is available**: check the skills list for `pr-review-toolkit:review-pr`. If missing, halt, tell the user the plugin is required, give install guidance, and do not proceed until they confirm.
 - [x] **Verify Docker works:** `docker version` and `docker compose version` succeed
-- [x] **Confirm open questions:** host MySQL version noted (default 8.0), starter-kit choice (Livewire) confirmed
+- [x] **Confirm open questions:** MongoDB architecture decision recorded (Doug), host `ext-mongodb` check noted for #8, starter-kit choice (Livewire) confirmed
 
 ## Execution
 
@@ -36,28 +36,29 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 - [x] Commit the pristine generated app separately from later config edits; verify with `git log --stat`
 - [x] Group verification: tests from section 1 pass
 
-### Group 2: Sail and MySQL (dev-environment)
+### Group 2: Sail and MongoDB (dev-environment)
 
-- [ ] **Test first:** write the failing database-driver test (`tests.md` section 2); verify it fails
-- [ ] Install Sail with MySQL (`sail:install --with=mysql`), runtime PHP 8.3; verify `compose.yaml` has `mysql` service and `8.3` runtime
-- [ ] Update `.env.example` for MySQL (placeholders only) and add a `testing` database; verify `sail up -d && sail artisan migrate` succeeds
-- [ ] Configure Pest to run against MySQL (`phpunit.xml` env); verify `sail artisan test` passes and the driver test is green
-- [ ] Add `.worktrees/` to `.gitignore`; verify `git check-ignore .worktrees` succeeds
+- [x] **Test first:** write the failing database-driver test and a persistence test (kit user registration stored in MongoDB) (`tests.md` section 2); verify they fail
+- [x] Install Sail with MongoDB (`sail:install --with=mongodb`), runtime PHP 8.3, and add `ext-mongodb` to the runtime if missing; verify `compose.yaml` has a `mongodb` service and `8.3` runtime, and `php -m` lists `mongodb`
+- [x] Install `mongodb/laravel-mongodb` ^5.11; set `mongodb` as the default connection, base the `User` model on the package, move cache/session/queue off SQL tables, and add a `RefreshMongoDatabase` test trait; verify the kit's auth tests pass
+- [x] Update `.env.example` for MongoDB (`MONGODB_URI`, `MONGODB_DATABASE`, placeholders only); verify `sail up -d` starts and `sail artisan test` can reach it
+- [x] Configure Pest to run against MongoDB (`phpunit.xml` env, `testing` database); verify `sail artisan test` passes and the driver test is green
+- [x] Add `.worktrees/` to `.gitignore`; verify `git check-ignore .worktrees` succeeds
 
 ### Group 3: Quality tooling (dev-environment, ci-pipeline)
 
-- [ ] **Test first:** run `pint --test` and `phpstan` before configuring them; verify they fail or are missing
-- [ ] Add Pint config (`pint.json`) and Larastan (`phpstan.neon`, level 5); verify both exit 0 on the scaffold
-- [ ] Add composer scripts `lint`, `analyse`, `test`; verify each runs from `sail composer`
+- [x] **Test first:** run `pint --test` and `phpstan` before configuring them; verify they fail or are missing
+- [x] Add Pint config (`pint.json`) and Larastan (`phpstan.neon`, level 7 as shipped by the kit); verify both exit 0 on the scaffold
+- [x] Add composer scripts `lint`, `analyse`, `test`; verify each runs from `sail composer`
 - [ ] Write README: setup, run, test, lint, version policy (PHP 8.3); verify a clean-clone walk-through of the README works
 
 ### Group 4: GitHub Actions CI (ci-pipeline)
 
-- [ ] **Test first:** open a draft PR with a deliberately failing check or push a branch with a lint error; verify the missing workflow means no CI result (red/absent baseline)
-- [ ] Write `.github/workflows/ci.yml`: triggers on pull_request and push to main, PHP 8.3 with required extensions, MySQL service with health check, Composer and npm caches, asset build, Pint, Larastan, Pest
+- [x] **Test first:** open a draft PR with a deliberately failing check or push a branch with a lint error; verify the missing workflow means no CI result (red/absent baseline)
+- [x] Write `.github/workflows/ci.yml`: triggers on pull_request and push to main, PHP 8.3 with required extensions including `mongodb`, MongoDB service with health check, Composer and npm caches, asset build, Pint, Larastan, Pest
 - [ ] Verify the workflow is green on the PR
 - [ ] Verify a deliberate lint error and a deliberate failing test each fail CI on a throwaway branch (delete the branch afterwards)
-- [ ] Verify the workflow uses no repository secrets (`grep -n secrets .github/workflows/ci.yml` returns nothing)
+- [x] Verify the workflow uses no repository secrets (`grep -n secrets .github/workflows/ci.yml` returns nothing)
 
 ## Pre-Commit Code Review
 
@@ -65,12 +66,12 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 
 ## Validation
 
-- [ ] Run unit/feature tests: `./vendor/bin/sail artisan test`
-- [ ] Run style check: `./vendor/bin/sail composer lint`
-- [ ] Run static analysis: `./vendor/bin/sail composer analyse`
-- [ ] Run asset build: `./vendor/bin/sail npm run build`
-- [ ] Run `openspec validate scaffold-laravel-app --strict`
-- [ ] Security/quality: confirm `.env` is untracked and no secrets are in the diff
+- [x] Run unit/feature tests: `./vendor/bin/sail artisan test`
+- [x] Run style check: `./vendor/bin/sail composer lint`
+- [x] Run static analysis: `./vendor/bin/sail composer analyse`
+- [x] Run asset build: `./vendor/bin/sail npm run build`
+- [x] Run `openspec validate scaffold-laravel-app --strict`
+- [x] Security/quality: confirm `.env` is untracked and no secrets are in the diff
 - [ ] All completed tasks marked complete
 
 ## Remote push validation

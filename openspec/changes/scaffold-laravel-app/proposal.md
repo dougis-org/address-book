@@ -11,11 +11,12 @@
 ## Problem Space
 
 - Current behavior: No Laravel app, no composer.json, no CI workflow for the application.
-- Desired behavior: `sail up` runs the app against MySQL, `sail artisan test` passes, and CI runs the same checks green on every PR and on main.
+- Desired behavior: `sail up` runs the app against MongoDB (Atlas Local), `sail artisan test` passes, and CI runs the same checks green on every PR and on main.
 - Constraints:
   - Production host (Exact Hosting, cPanel shared) currently runs **PHP 8.2**, but Laravel 13 (latest; no Laravel 14 exists) needs PHP 8.3. Decision (Doug): target Laravel 13 / PHP 8.3 now. Deploying (#8) is blocked until the host offers PHP 8.3 (cPanel MultiPHP / Select PHP Version).
   - Required PHP extensions are confirmed present on the host.
-  - Production DB is MySQL; CI and local must use MySQL, not SQLite, to avoid driver drift.
+  - Production DB is MongoDB Atlas (architecture decision by Doug); CI and local must use MongoDB (Atlas Local image), not SQLite or MySQL, to avoid driver drift.
+  - Eloquent support for MongoDB comes from the official `mongodb/laravel-mongodb` package (5.x supports Laravel 13) and the `ext-mongodb` PHP extension.
   - Test-driven development is mandatory for all later work.
 - Assumptions:
   - The official Laravel 13 Livewire starter kit uses Fortify and includes login, registration (togglable), password reset, email verification and TOTP two-factor authentication with recovery codes (confirmed against the `laravel/livewire-starter-kit` main branch; the older Laravel 12 Volt kit has no Fortify or 2FA). Issues #2 to #4 then become mostly *verify and customize with tests*, not build.
@@ -23,7 +24,7 @@
   - Local PHP and Composer are not installed; all tooling runs through Docker (Sail or a Composer container).
 - Edge cases considered:
   - PHP drift between local, CI and host: pinned to 8.3 in composer.json (`config.platform.php`), Sail, and CI.
-  - MySQL version drift: Sail and the CI service container use the same major MySQL version (to be matched to the host in design).
+  - MongoDB drift: Sail and the CI service container use the same Atlas Local image major version; Atlas cluster version to be matched later.
   - Starter-kit tests ship as PHPUnit or Pest depending on installer flags: choose Pest explicitly.
 
 ## Scope
@@ -32,10 +33,11 @@
 
 - Laravel 13 application created from the official Livewire starter kit (non-WorkOS variant).
 - PHP 8.3 pinned in `composer.json` and `config.platform`.
-- Sail with MySQL for local development; `.env.example` for MySQL.
+- Sail with MongoDB (`sail:install --with=mongodb`, Atlas Local image) for local development; `.env.example` with `MONGODB_URI` and `MONGODB_DATABASE`.
+- `mongodb/laravel-mongodb` installed and wired: `mongodb` database connection as default, the kit's `User` model on the MongoDB base model, and cache, session and queue storage that do not need SQL tables.
 - Pest (with Laravel plugin) as the test framework; starter-kit tests converted or created as Pest.
 - Pint for code style and Larastan for static analysis, with config committed.
-- GitHub Actions workflow: PHP 8.3, MySQL service, Composer cache, runs Pint (check mode), Larastan, Pest on PRs and pushes to main; asset build step.
+- GitHub Actions workflow: PHP 8.3 with `ext-mongodb`, MongoDB service, Composer cache, runs Pint (check mode), Larastan, Pest on PRs and pushes to main; asset build step.
 - README with setup and test instructions.
 - `.worktrees/` in `.gitignore`.
 
@@ -45,6 +47,7 @@
 - Contact model or any address-book domain code: #5 onward.
 - Deployment workflow: #8.
 - Production hosting configuration.
+- Passkeys (WebAuthn): disabled because the kit's implementation is SQL-only; see design Decision 8.
 
 ## What Changes
 
@@ -56,8 +59,8 @@
 
 #### New Capabilities
 
-- `dev-environment`: reproducible local environment (Sail, MySQL, pinned PHP 8.3) and the commands to run the app and tests.
-- `ci-pipeline`: GitHub Actions quality gate (style, static analysis, tests against MySQL) on PRs and main.
+- `dev-environment`: reproducible local environment (Sail, MongoDB, pinned PHP 8.3) and the commands to run the app and tests.
+- `ci-pipeline`: GitHub Actions quality gate (style, static analysis, tests against MongoDB) on PRs and main.
 
 #### Modified Capabilities
 
@@ -74,21 +77,24 @@
 - Risk: Laravel 13 needs PHP 8.3 but the production host runs PHP 8.2.
   - Impact: The app cannot be deployed to the host until it offers 8.3.
   - Mitigation: Local, CI and tests use 8.3; issue #8 stays blocked until the owner confirms 8.3 on the host (or changes hosts). Pin `laravel/framework:^13.0` and `php:^8.3`.
-- Risk: MySQL feature or version differences between CI/local and the host.
-  - Impact: Migrations pass in CI but fail on the host.
-  - Mitigation: Match the MySQL major version to the host's (to be confirmed by the owner).
+- Risk: The starter kit is built for SQL (Eloquent models, migrations, `database` session/cache/queue drivers, `RefreshDatabase`).
+  - Impact: Auth flows and tests could fail on MongoDB.
+  - Mitigation: Switch the `User` model to the package base class, move cache/session/queue off SQL tables, replace `RefreshDatabase` with a MongoDB reset trait, and prove it with the kit's own auth tests passing.
+- Risk: The shared host may lack `ext-mongodb`, block outbound connections to Atlas, or not be on an Atlas IP allowlist.
+  - Impact: Deployment (#8) fails even with PHP 8.3.
+  - Mitigation: Owner checks `ext-mongodb` and outbound access on the host; tracked as a #8 blocker.
 
 ## Open Questions
 
-- Question: What MySQL (or MariaDB) version does the Exact Hosting plan provide?
-  - Needed from: Doug (cPanel > MySQL Databases / phpMyAdmin)
-  - Blocker for apply: no (default CI and Sail to MySQL 8.0; adjust when known)
+- Question: Does the Exact Hosting plan provide `ext-mongodb` and allow outbound connections to Atlas?
+  - Needed from: Doug (cPanel > Select PHP Version / support)
+  - Blocker for apply: no (blocks deployment, issue #8)
 - Question: Livewire starter kit chosen over React/Vue/Svelte, acceptable?
   - Needed from: Doug
   - Blocker for apply: no (recommended default is Livewire; reversible before apply starts)
 - Question: Should Larastan start at a strict level or a baseline level?
   - Needed from: Doug
-  - Blocker for apply: no (default: level 5 with an option to raise)
+  - Blocker for apply: no (default: the kit ships level 7, which passes on the scaffold; kept)
 
 No other unresolved ambiguity: framework version, PHP version, test framework, starter-kit approach and 2FA availability were settled in the explore session.
 
