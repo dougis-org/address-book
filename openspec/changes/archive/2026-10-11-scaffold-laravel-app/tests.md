@@ -35,7 +35,7 @@ For each task in `tasks.md`:
 - [x] `tests/Feature/UserPersistenceTest.php`: a user registered through the kit is stored in the MongoDB `users` collection, and the database is empty at the start of each test, maps to "Tests use MongoDB"
 - [x] Kit auth and settings tests pass on MongoDB; `tests/Feature/Settings/SecurityTest.php` asserts passkeys are not shown (design Decision 8)
 - [x] Manual: `sail up -d && sail artisan test` succeeds on a clean clone
-- [ ] `tests/Feature/RepositoryHygieneTest.php`: `.env` is not tracked and `.env.example` exists with no non-placeholder secrets, maps to "Secrets not tracked"
+- [x] `tests/Feature/RepositoryHygieneTest.php`: `.env` is not tracked and `.env.example` exists with no non-placeholder secrets, maps to "Secrets not tracked"
 
 ### 3. Quality tooling (Tasks Group 3; specs: dev-environment, ci-pipeline)
 
@@ -46,10 +46,10 @@ For each task in `tasks.md`:
 
 ### 4. GitHub Actions CI (Tasks Group 4; spec: ci-pipeline)
 
-- [ ] PR run is green, maps to "All checks pass" and "Pull request triggers CI"
-- [ ] Push-to-main run triggers after merge, maps to "Push to main triggers CI"
-- [ ] Throwaway branch with a Pint violation fails CI, maps to "Style violation fails the job"
-- [ ] Throwaway branch with a failing Pest test fails CI, maps to "Failing test fails the job"
-- [ ] Throwaway branch breaking the asset build fails CI, maps to "Asset build breaks"
+- [x] PR run is green, maps to "All checks pass" and "Pull request triggers CI"
+- [x] Push-to-main run triggers after merge, maps to "Push to main triggers CI"
+- [ ] Throwaway branch with a Pint violation fails CI, maps to "Style violation fails the job" — **not exercised in CI** (throwaway PR pushes were blocked); verified locally
+- [ ] Throwaway branch with a failing Pest test fails CI, maps to "Failing test fails the job" — **not exercised in CI** (blocked); verified locally
+- [ ] Throwaway branch breaking the asset build fails CI, maps to "Asset build breaks" — **not exercised** (blocked)
 - [x] Workflow review: MongoDB service has a health check, no repository secrets referenced, maps to "Database is ready before tests" and "No production secrets in CI"
-- [ ] Observation: warm-cache runtime under 5 minutes (target only)
+- [x] Observation: warm-cache runtime under 5 minutes (target only) (observed: 1m11s to 1m36s)

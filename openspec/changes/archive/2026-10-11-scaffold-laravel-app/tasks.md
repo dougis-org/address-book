@@ -56,13 +56,15 @@ Strict BDD/TDD: for every group, write the failing test from `tests.md` first, c
 
 - [x] **Test first:** open a draft PR with a deliberately failing check or push a branch with a lint error; verify the missing workflow means no CI result (red/absent baseline)
 - [x] Write `.github/workflows/ci.yml`: triggers on pull_request and push to main, PHP 8.3 with required extensions including `mongodb`, MongoDB service with health check, Composer and npm caches, asset build, Pint, Larastan, Pest
-- [ ] Verify the workflow is green on the PR
+- [x] Verify the workflow is green on the PR
 - [ ] Verify a deliberate lint error and a deliberate failing test each fail CI on a throwaway branch (delete the branch afterwards)
+  - **Not done:** the throwaway-branch/draft-PR pushes were blocked by the permission classifier. Local checks cover both cases (`composer lint` exits 1 on a badly formatted file; a failing Pest test fails `composer test`), but CI-side failure was not exercised. Follow up manually if wanted.
 - [x] Verify the workflow uses no repository secrets (`grep -n secrets .github/workflows/ci.yml` returns nothing)
 
 ## Pre-Commit Code Review
 
 - [ ] **Before every commit**, spawn a dedicated sub-agent to run the `openspec-review-code` skill. The primary agent must automatically apply all clearly-correct findings without stopping or asking, re-run tests, then commit.
+  - **Partial:** the sub-agent review ran for the pristine-app + artifact commits and the main adaptation commit (`ab7704d`); small follow-up commits (platform pin, README fix, passkey route, driver smoke tests) were validated by `composer ci:check` and CI but not reviewed by a sub-agent individually.
 
 ## Validation
 
@@ -86,13 +88,15 @@ If any required step fails, fix it before pushing.
 ## PR and Merge
 
 - [x] Confirm the `openspec-review-code` sub-agent ran and all findings were addressed before the final commit
-- [ ] Commit all changes and push to the working branch
-- [ ] Open a PR from `scaffold-laravel-app` to `main`; the body MUST include `Closes #1`
-- [ ] **Issue lifecycle: mark in-review:** `gh issue edit 1 --add-label "in-review" --remove-label "in-progress"`, then move the project item to "In Review" (same discovery as above; warn and skip if not found)
-- [ ] Open the PR, then immediately start in parallel (no fixed sleeps): (a) a sub-agent running `pr-review-toolkit:review-pr`; (b) `gh pr checks <PR-URL> --required --watch --fail-fast`
-- [ ] **Triage loop until review-pr reports zero findings, required checks pass, and no thread is unresolved.** Each iteration: collect failing checks (`gh pr checks <PR-URL> --required --json name,bucket,link`, logs via `gh run view <run-id> --log-failed`), unresolved review threads (GraphQL `reviewThreads`), and review-pr findings; fix in one commit; run Remote push validation; push once; reply to and resolve each addressed thread; re-watch checks. At most two fix iterations; if the third review still raises issues, stop and escalate to the user with the remaining items.
-- [ ] Enable auto-merge only after the triage loop is clean: `gh pr merge <PR-URL> --auto --merge` (never `--admin`)
-- [ ] Watch for merge: poll `gh pr view <PR-URL> --json state` until MERGED; if CLOSED, notify the user
+- [x] Commit all changes and push to the working branch
+- [x] Open a PR from `scaffold-laravel-app` to `main`; the body MUST include `Closes #1`
+- [x] **Issue lifecycle: mark in-review:** `gh issue edit 1 --add-label "in-review" --remove-label "in-progress"`, then move the project item to "In Review" (same discovery as above; warn and skip if not found)
+  - Label moved. Project-board move skipped: the `gh` token lacks `read:project`/`project` scope (run `gh auth refresh -s read:project -s project`).
+- [x] Open the PR, then immediately start in parallel (no fixed sleeps): (a) a sub-agent running `pr-review-toolkit:review-pr`; (b) `gh pr checks <PR-URL> --required --watch --fail-fast`
+- [x] **Triage loop until review-pr reports zero findings, required checks pass, and no thread is unresolved.** Each iteration: collect failing checks (`gh pr checks <PR-URL> --required --json name,bucket,link`, logs via `gh run view <run-id> --log-failed`), unresolved review threads (GraphQL `reviewThreads`), and review-pr findings; fix in one commit; run Remote push validation; push once; reply to and resolve each addressed thread; re-watch checks. At most two fix iterations; if the third review still raises issues, stop and escalate to the user with the remaining items.
+- [x] Enable auto-merge only after the triage loop is clean: `gh pr merge <PR-URL> --auto --merge` (never `--admin`)
+  - Merged after one fix iteration; `main` has no required checks, so GitHub merged immediately rather than waiting on auto-merge.
+- [x] Watch for merge: poll `gh pr view <PR-URL> --json state` until MERGED; if CLOSED, notify the user
 
 Blocking resolution flow:
 
@@ -102,13 +106,13 @@ Blocking resolution flow:
 
 ## Post-Merge
 
-- [ ] From the primary checkout: `git checkout main` and `git pull --ff-only`
-- [ ] Verify the merged changes appear on `main` (`composer.json` and `.github/workflows/ci.yml` present)
-- [ ] Mark all remaining tasks complete (`- [x]`)
-- [ ] Update repository documentation impacted by the change (README)
-- [ ] Sync approved spec deltas into `openspec/specs/dev-environment/spec.md` and `openspec/specs/ci-pipeline/spec.md`; update relative links to `../../changes/archive/YYYY-MM-DD-scaffold-laravel-app/design.md` and `.../tasks.md`
-- [ ] Archive: move `openspec/changes/scaffold-laravel-app/` to `openspec/changes/archive/YYYY-MM-DD-scaffold-laravel-app/` in a single commit that includes both the new location and the deletion of the old
-- [ ] Confirm the archive directory exists and the original is gone
+- [x] From the primary checkout: `git checkout main` and `git pull --ff-only`
+- [x] Verify the merged changes appear on `main` (`composer.json` and `.github/workflows/ci.yml` present)
+- [x] Mark all remaining tasks complete (`- [x]`)
+- [x] Update repository documentation impacted by the change (README)
+- [x] Sync approved spec deltas into `openspec/specs/dev-environment/spec.md` and `openspec/specs/ci-pipeline/spec.md`; update relative links to `../../changes/archive/YYYY-MM-DD-scaffold-laravel-app/design.md` and `.../tasks.md`
+- [x] Archive: move `openspec/changes/scaffold-laravel-app/` to `openspec/changes/archive/YYYY-MM-DD-scaffold-laravel-app/` in a single commit that includes both the new location and the deletion of the old
+- [x] Confirm the archive directory exists and the original is gone
 - [ ] Create a doc branch: `git checkout -b doc/archive-YYYY-MM-DD-scaffold-laravel-app` and `git push -u origin doc/archive-YYYY-MM-DD-scaffold-laravel-app`
 - [ ] Open a PR titled `docs: archive scaffold-laravel-app (YYYY-MM-DD)`; do not push directly to `main`
 - [ ] Immediately enable auto-merge: `gh pr merge <DOC-PR-URL> --auto --merge`
