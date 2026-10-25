@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Address Book</title>
+<style id="pageStyle"></style>
+<style>
+  :root { --bg:#f6f4f0; --card:#fff; --ink:#222; --muted:#6b6b6b; --accent:#2f6f5e; --accent-ink:#fff; --line:#ddd8cf; --danger:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1c1d1c; --card:#272927; --ink:#eee; --muted:#a0a0a0; --accent:#5fb39d; --accent-ink:#0c1f1a; --line:#3b3e3b; --danger:#f2867f; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+  header h1 { font-size:1.2rem; margin:0 auto 0 0; }
+  button, .btn { font:inherit; padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  button.danger { color:var(--danger); }
+  button:hover { filter:brightness(0.96); }
+  main { max-width:960px; margin:0 auto; padding:16px; }
+  #banner { display:none; background:#fff3cd; color:#5c4400; border:1px solid #e6cf80; padding:10px 14px; border-radius:8px; margin-bottom:12px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .bar input[type=search] { flex:1; min-width:180px; }
+  input, select, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); width:100%; }
+  input[type=checkbox], input[type=radio] { width:auto; }
+  .muted { color:var(--muted); font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border-radius:8px; overflow:hidden; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:.85rem; color:var(--muted); font-weight:600; }
+  tr.row { cursor:pointer; } tr.row:hover { background:rgba(127,127,127,.08); }
+  dialog { border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); max-width:640px; width:calc(100% - 24px); padding:20px; }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  dialog h2 { margin-top:0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid .full { grid-column:1 / -1; }
+  label.f { display:block; font-size:.85rem; color:var(--muted); }
+  label.f input, label.f select, label.f textarea { margin-top:3px; color:var(--ink); }
+  .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+  .map { display:grid; grid-template-columns:140px 1fr; gap:6px 10px; align-items:center; }
+  @media (max-width:560px) { .grid { grid-template-columns:1fr; } .hide-sm { display:none; } }
+  #sheet { display:none; }
+  @media print {
+    body > *:not(#sheet) { display:none !important; }
+    #sheet { display:block; }
+    .page { position:relative; overflow:hidden; page-break-after:always; break-after:page; }
+    .page:last-child { page-break-after:auto; break-after:auto; }
+    .label { position:absolute; overflow:hidden; display:flex; flex-direction:column; justify-content:center; padding:0 .12in; color:#000; font-family:Arial, Helvetica, sans-serif; line-height:1.15; white-space:nowrap; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>📒 Address Book</h1>
+  <button class="primary" id="btnAdd">+ Add contact</button>
+  <button id="btnImport">Import CSV</button>
+  <button id="btnLabels">Print labels</button>
+  <button id="btnBackup">Backup</button>
+  <button id="btnRestore">Restore</button>
+  <input type="file" id="fileCsv" accept=".csv,text/csv,.txt" hidden>
+  <input type="file" id="fileRestore" accept=".json,application/json" hidden>
+</header>
+<main>
+  <div id="banner"></div>
+  <div class="bar">
+    <input type="search" id="search" placeholder="Search name, city, email, phone…">
+    <label class="muted" style="white-space:nowrap"><input type="checkbox" id="xmasOnly"> 🎄 Christmas list only</label>
+    <button id="btnDeleteSel" class="danger" style="display:none">Delete selected</button>
+    <button id="btnExportCsv" title="Download all contacts as a CSV spreadsheet">Export CSV</button>
+  </div>
+  <div class="muted" id="count" style="margin-bottom:6px"></div>
+  <table>
+    <thead><tr><th style="width:32px"><input type="checkbox" id="selAll" title="Select all shown"></th><th>Name</th><th>Address</th><th class="hide-sm">Phone / Email</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p class="muted">Tip: tick contacts, then “Print labels” to print just those. Your data lives in this browser — use <b>Backup</b> regularly and keep the file somewhere safe (cloud drive, email to yourself).</p>
+</main>
+
+<!-- Edit dialog -->
+<dialog id="dlgEdit">
+  <form method="dialog" id="formEdit">
+    <h2 id="editTitle">Contact</h2>
+    <div class="grid">
+      <label class="f">First name<input name="first"></label>
+      <label class="f">Last name<input name="last"></label>
+      <label class="f full">Envelope name (optional — e.g. “The Smith Family”)<input name="addressee"></label>
+      <label class="f full">Company<input name="org"></label>
+      <label class="f">Significant other<input name="significantOther"></label>
+      <label class="f">Children<input name="children"></label>
+      <label class="f full" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="christmas"> On the Christmas card list</label>
+      <label class="f full">Address line 1<input name="addr1"></label>
+      <label class="f full">Address line 2<input name="addr2"></label>
+      <label class="f">City<input name="city"></label>
+      <label class="f">State / Province<input name="state"></label>
+      <label class="f">ZIP / Postal code<input name="zip"></label>
+      <label class="f">Country<input name="country"></label>
+      <label class="f">Home phone<input name="homePhone" type="tel"></label>
+      <label class="f">Work phone<input name="workPhone" type="tel"></label>
+      <label class="f">Cell phone<input name="cellPhone" type="tel"></label>
+      <label class="f">Fax<input name="fax" type="tel"></label>
+      <label class="f">Email<input name="email" type="email"></label>
+      <label class="f full">Notes<textarea name="notes" rows="3"></textarea></label>
+    </div>
+    <div class="actions">
+      <button type="button" class="danger" id="btnDelete" style="margin-right:auto">Delete</button>
+      <button type="button" id="btnCancelEdit">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Import dialog -->
+<dialog id="dlgImport">
+  <h2>Import CSV</h2>
+  <p class="muted" id="impInfo"></p>
+  <div class="map" id="impMap"></div>
+  <p><label><input type="checkbox" id="impSkipDup" checked> Skip contacts already in the book (same name &amp; address)</label></p>
+  <div class="actions">
+    <button id="impCancel">Cancel</button>
+    <button class="primary" id="impGo">Import</button>
+  </div>
+</dialog>
+
+<!-- Labels dialog -->
+<dialog id="dlgLabels">
+  <h2>Print address labels</h2>
+  <div class="grid">
+    <label class="f full">Label sheet
+      <select id="lblTpl"></select></label>
+    <label class="f full">Which contacts
+      <select id="lblWho"></select></label>
+    <label class="f" id="skipWrap">Skip first N labels (partly used sheet)<input type="number" id="lblSkip" min="0" value="0"></label>
+    <label class="f">Font size (pt)<input type="number" id="lblFont" min="6" max="20" value="10"></label>
+    <label class="f full" id="retWrap">Return address (printed top-left on envelopes; optional)<textarea id="lblReturn" rows="3"></textarea></label>
+  </div>
+  <p class="muted" id="lblInfo"></p>
+  <p class="muted" id="lblHint"></p>
+  <div class="actions">
+    <button id="lblCancel">Cancel</button>
+    <button class="primary" id="lblPrint">Print</button>
+  </div>
+</dialog>
+
+<div id="sheet"></div>
+
+<script>
+(() => {
+'use strict';
+const KEY = 'addressbook.v1';
+const FIELDS = [
+  ['first','First name'],['last','Last name'],['addressee','Envelope name'],['org','Company'],
+  ['significantOther','Significant other'],['children','Children'],['christmas','Christmas card list'],
+  ['addr1','Address line 1'],['addr2','Address line 2'],['city','City'],['state','State / Province'],
+  ['zip','ZIP / Postal code'],['country','Country'],
+  ['homePhone','Home phone'],['workPhone','Work phone'],['cellPhone','Cell phone'],['fax','Fax'],
+  ['email','Email'],['notes','Notes']
+];
+const BOOL = new Set(['christmas']);
+const isTrue = v => v === true || /^(true|yes|y|1|x)$/i.test(String(v || '').trim());
+// older records had a single "phone" field
+const migrate = c => { if (c.phone) { c.homePhone = c.homePhone || c.phone; } delete c.phone; return c; };
+const phoneLine = c => [['homePhone', 'H'], ['workPhone', 'W'], ['cellPhone', 'C'], ['fax', 'Fax']].filter(([k]) => c[k]).map(([k, l]) => l + ' ' + c[k]).join(' · ');
+const SYN = {
+  first:['first name','first','given name','firstname','given'],
+  last:['last name','last','family name','surname','lastname'],
+  full:['name','full name','display name','contact name'],
+  addressee:['label name','addressee','household','envelope name','envelope'],
+  significantOther:['significant other','spouse','partner'],
+  children:['children','kids'],
+  christmas:['christmas card','christmas card list','christmas','xmas'],
+  org:['organization','company','organization 1 - name','org','business'],
+  addr1:['address','address 1','address1','street','street address','home street','address 1 - street','mailing address','address line 1'],
+  addr2:['address 2','address2','street 2','address line 2','address 1 - extended address'],
+  city:['city','home city','address 1 - city','town'],
+  state:['state','province','state/province','home state','address 1 - region','region'],
+  zip:['zip','zip code','zipcode','postal code','postcode','home postal code','address 1 - postal code'],
+  country:['country','country/region','home country','address 1 - country'],
+  homePhone:['home phone','phone','phone number','primary phone','telephone','phone 1 - value'],
+  workPhone:['work phone','business phone','office phone'],
+  cellPhone:['cell phone','cell','mobile phone','mobile'],
+  fax:['fax','fax number'],
+  email:['email','e-mail address','email address','e-mail 1 - value','e-mail','email 1'],
+  notes:['notes','note','comments']
+};
+const mm = (name, cols, rows, w, h, top, left, hg, vg) => { const f = v => v / 25.4;
+  return { name, cols, rows, w: f(w), h: f(h), top: f(top), left: f(left), hgap: f(hg), vgap: f(vg), pageW: 210 / 25.4, pageH: 297 / 25.4 }; };
+const TEMPLATES = {
+  '5160': {name:'Avery 5160 — 30 per sheet (1″ × 2⅝″)', cols:3, rows:10, w:2.625, h:1, top:0.5, left:0.1875, hgap:0.125, vgap:0},
+  '5161': {name:'Avery 5161 — 20 per sheet (1″ × 4″)', cols:2, rows:10, w:4, h:1, top:0.5, left:0.15625, hgap:0.1875, vgap:0},
+  '5162': {name:'Avery 5162 — 14 per sheet (1⅓″ × 4″)', cols:2, rows:7, w:4, h:1.333, top:0.8333, left:0.15625, hgap:0.1875, vgap:0},
+  '5163': {name:'Avery 5163 — 10 per sheet (2″ × 4″)', cols:2, rows:5, w:4, h:2, top:0.5, left:0.15625, hgap:0.1875, vgap:0},
+  'L7160': mm('A4 · Avery L7160 — 21 per sheet (63.5 × 38.1 mm)', 3, 7, 63.5, 38.1, 15.15, 7.2, 2.5, 0),
+  'L7163': mm('A4 · Avery L7163 — 14 per sheet (99.1 × 38.1 mm)', 2, 7, 99.1, 38.1, 15.15, 4.65, 2.5, 0),
+  'L7165': mm('A4 · Avery L7165 — 8 per sheet (99.1 × 67.7 mm)', 2, 4, 99.1, 67.7, 13.1, 4.65, 2.5, 0),
+  'env10': {name:'Envelope · #10 (4⅛″ × 9½″)', env:true, pageW:9.5, pageH:4.125},
+  'envDL': {name:'Envelope · DL (110 × 220 mm)', env:true, pageW:220/25.4, pageH:110/25.4}
+};
+
+let db = { contacts: [], lastBackup: null };
+let editingId = null;
+let csv = null; // {headers, rows}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+// Server mode (page served by server.js): data lives on the server. Otherwise (opened as a plain file): browser storage.
+let serverMode = false, rev = 0, saveChain = Promise.resolve();
+function readLocal() { try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+async function load() {
+  try {
+    const r = await fetch('api/data', { cache: 'no-store' });
+    if (r.ok) {
+      const j = await r.json(); serverMode = true; rev = j.rev || 0;
+      if (j.data) db = Object.assign(db, j.data);
+      else {
+        const local = readLocal();
+        if (local && local.contacts && local.contacts.length && confirm(`The server address book is empty, but this browser has ${local.contacts.length} contacts. Copy them to the server?`)) { db = Object.assign(db, local); save(); }
+      }
+      return;
+    }
+  } catch (e) { /* no server: fall back to browser storage */ }
+  const local = readLocal(); if (local) db = Object.assign(db, local);
+}
+function save() {
+  if (!serverMode) {
+    try { localStorage.setItem(KEY, JSON.stringify(db)); }
+    catch (e) { alert('Could not save to this browser (storage may be disabled or full). Please make a Backup now.'); }
+    return;
+  }
+  const body = JSON.stringify(db);
+  saveChain = saveChain.then(async () => {
+    try {
+      const r = await fetch('api/data', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'If-Match': String(rev) }, body });
+      if (r.status === 409) { alert('The address book was changed from another device. Loading the latest version — please redo your last change.'); await load(); render(); return; }
+      if (!r.ok) throw new Error(r.status);
+      rev = (await r.json()).rev;
+    } catch (e) { alert('Could not save to the server! Make a Backup now and check the server is running.'); }
+  });
+}
+
+const fullName = c => [c.first, c.last].filter(Boolean).join(' ') || c.addressee || c.org || '(no name)';
+const sortKey = c => ((c.last || c.org || c.addressee || '') + ' ' + (c.first || '')).toLowerCase();
+const cityLine = c => [[c.city, c.state].filter(Boolean).join(', '), c.zip].filter(Boolean).join(' ');
+const hasAddress = c => !!(c.addr1 || c.addr2 || c.city);
+
+function filtered() {
+  const q = $('search').value.trim().toLowerCase();
+  const xo = $('xmasOnly').checked;
+  const list = db.contacts.filter(c => (!xo || c.christmas) && (!q || FIELDS.some(([k]) => !BOOL.has(k) && String(c[k] || '').toLowerCase().includes(q))));
+  return list.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+}
+
+const selected = new Set();
+function render() {
+  const list = filtered();
+  $('btnDeleteSel').style.display = selected.size ? '' : 'none';
+  $('btnDeleteSel').textContent = `Delete selected (${selected.size})`;
+  $('count').textContent = `${list.length} of ${db.contacts.length} contacts` + (selected.size ? ` · ${selected.size} selected` : '');
+  $('rows').innerHTML = list.length ? list.map(c => `
+    <tr class="row" data-id="${c.id}">
+      <td><input type="checkbox" class="sel" ${selected.has(c.id) ? 'checked' : ''}></td>
+      <td><b>${esc(fullName(c))}</b>${c.christmas ? ' 🎄' : ''}${c.significantOther ? `<div class="muted">& ${esc(c.significantOther)}</div>` : ''}${c.org && (c.first || c.last) ? `<div class="muted">${esc(c.org)}</div>` : ''}</td>
+      <td>${esc([c.addr1, c.addr2].filter(Boolean).join(', '))}<div class="muted">${esc(cityLine(c))}</div></td>
+      <td class="hide-sm">${esc(phoneLine(c))}<div class="muted">${esc(c.email)}</div></td>
+    </tr>`).join('')
+    : `<tr><td colspan="4" class="muted">${db.contacts.length ? 'No matches.' : 'No contacts yet. Click “+ Add contact” or “Import CSV”.'}</td></tr>`;
+  const days = db.lastBackup ? Math.floor((Date.now() - db.lastBackup) / 864e5) : null;
+  const b = $('banner');
+  if (db.contacts.length && (days === null || days >= 30)) {
+    b.style.display = 'block';
+    b.innerHTML = days === null ? '⚠️ You have never made a backup. Click <b>Backup</b> to save a copy of your address book.'
+                                : `⚠️ Last backup was ${days} days ago. Click <b>Backup</b> to save a fresh copy.`;
+  } else b.style.display = 'none';
+}
+
+// ---------- Edit ----------
+function openEdit(id) {
+  editingId = id || null;
+  const c = id ? db.contacts.find(x => x.id === id) : {};
+  $('editTitle').textContent = id ? 'Edit contact' : 'New contact';
+  $('btnDelete').style.display = id ? '' : 'none';
+  FIELDS.forEach(([k]) => { const el = $('formEdit').elements[k]; if (BOOL.has(k)) el.checked = !!c[k]; else el.value = c[k] || ''; });
+  $('dlgEdit').showModal();
+}
+$('formEdit').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = {};
+  FIELDS.forEach(([k]) => { const el = $('formEdit').elements[k]; data[k] = BOOL.has(k) ? el.checked : el.value.trim(); });
+  if (!Object.values(data).some(Boolean)) { $('dlgEdit').close(); return; }
+  if (editingId) Object.assign(db.contacts.find(x => x.id === editingId), data);
+  else db.contacts.push({ id: uid(), ...data });
+  save(); $('dlgEdit').close(); render();
+});
+$('btnCancelEdit').onclick = () => $('dlgEdit').close();
+$('btnDelete').onclick = () => {
+  const c = db.contacts.find(x => x.id === editingId);
+  if (c && confirm(`Delete ${fullName(c)}? This cannot be undone.`)) {
+    db.contacts = db.contacts.filter(x => x.id !== editingId); selected.delete(editingId);
+    save(); $('dlgEdit').close(); render();
+  }
+};
+$('btnAdd').onclick = () => openEdit();
+$('search').oninput = render;
+$('xmasOnly').onchange = render;
+$('btnDeleteSel').onclick = () => {
+  const n = selected.size;
+  if (!n || !confirm(`Delete ${n} selected contact${n === 1 ? '' : 's'}? This cannot be undone.
+
+(Tip: make a Backup first.)`)) return;
+  db.contacts = db.contacts.filter(c => !selected.has(c.id)); selected.clear();
+  save(); render();
+};
+$('rows').addEventListener('click', e => {
+  const tr = e.target.closest('tr.row'); if (!tr) return;
+  const id = tr.dataset.id;
+  if (e.target.classList.contains('sel')) { e.target.checked ? selected.add(id) : selected.delete(id); render(); return; }
+  openEdit(id);
+});
+$('selAll').onchange = e => { filtered().forEach(c => e.target.checked ? selected.add(c.id) : selected.delete(c.id)); render(); };
+
+// ---------- Backup / restore ----------
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const today = () => new Date().toISOString().slice(0, 10);
+$('btnBackup').onclick = () => {
+  download(`address-book-backup-${today()}.json`, JSON.stringify({ app: 'addressbook', version: 1, exported: new Date().toISOString(), returnAddr: db.returnAddr || '', contacts: db.contacts }, null, 2), 'application/json');
+  db.lastBackup = Date.now(); save(); render();
+};
+$('btnRestore').onclick = () => $('fileRestore').click();
+$('fileRestore').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (j.app !== 'addressbook' || !Array.isArray(j.contacts)) throw new Error('Not an address book backup');
+    if (!confirm(`This backup has ${j.contacts.length} contacts.\n\nReplace everything currently in the book (${db.contacts.length} contacts) with it?`)) return;
+    db.contacts = j.contacts.map(c => migrate({ ...c, id: c.id || uid() }));
+    db.returnAddr = j.returnAddr || '';
+    selected.clear(); db.lastBackup = Date.now(); save(); render();
+  } catch (err) { alert('Could not restore: ' + err.message); }
+};
+
+// ---------- CSV ----------
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const first = text.split(/\r?\n/)[0] || '';
+  const delim = [',', '\t', ';'].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === delim) { row.push(cur); cur = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += ch;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim()));
+}
+function toCSV(rows) {
+  return rows.map(r => r.map(v => { v = String(v ?? ''); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(',')).join('\r\n');
+}
+$('btnExportCsv').onclick = () => {
+  const rows = [FIELDS.map(f => f[1])].concat(filtered().map(c => FIELDS.map(([k]) => BOOL.has(k) ? (c[k] ? 'True' : 'False') : (c[k] || ''))));
+  download(`address-book-${today()}.csv`, '﻿' + toCSV(rows), 'text/csv');
+};
+
+$('btnImport').onclick = () => $('fileCsv').click();
+$('fileCsv').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const rows = parseCSV(await f.text());
+  if (rows.length < 2) { alert('That file looks empty.'); return; }
+  csv = { headers: rows[0].map(h => h.trim()), rows: rows.slice(1) };
+  const n = x => String(x).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const norm = csv.headers.map(n);
+  const pick = k => norm.findIndex(h => SYN[k].some(y => n(y) === h));
+  const opts = idx => '<option value="-1">— don’t import —</option>' + csv.headers.map((h, i) => `<option value="${i}" ${i === idx ? 'selected' : ''}>${esc(h || '(column ' + (i + 1) + ')')}</option>`).join('');
+  const all = [['full', 'Full name (split)'], ...FIELDS];
+  $('impMap').innerHTML = all.map(([k, label]) => {
+    let idx = pick(k);
+    if (k === 'full' && (pick('first') >= 0 || pick('last') >= 0)) idx = -1;
+    return `<label for="m_${k}">${esc(label)}</label><select id="m_${k}" data-k="${k}">${opts(idx)}</select>`;
+  }).join('');
+  $('impInfo').textContent = `${csv.rows.length} rows found in “${f.name}”. Check that each field matches the right column:`;
+  $('dlgImport').showModal();
+};
+$('impCancel').onclick = () => $('dlgImport').close();
+$('impGo').onclick = () => {
+  const map = {};
+  document.querySelectorAll('#impMap select').forEach(s => map[s.dataset.k] = +s.value);
+  const get = (r, k) => map[k] >= 0 ? (r[map[k]] || '').trim() : '';
+  const dupKey = c => [c.first, c.last, c.org, c.addr1].map(v => (v || '').toLowerCase().trim()).join('|');
+  const seen = new Set(db.contacts.map(dupKey));
+  let added = 0, skipped = 0;
+  for (const r of csv.rows) {
+    const c = { id: uid() };
+    FIELDS.forEach(([k]) => c[k] = BOOL.has(k) ? isTrue(get(r, k)) : get(r, k));
+    if (c.zip === '0') c.zip = ''; else if (/^d{3,4}$/.test(c.zip)) c.zip = c.zip.padStart(5, '0');
+    const full = get(r, 'full');
+    if (full && !c.first && !c.last) {
+      if (full.includes(',')) { const [l, ...f] = full.split(','); c.last = l.trim(); c.first = f.join(',').trim(); }
+      else { const p = full.split(/\s+/); c.last = p.length > 1 ? p.pop() : ''; c.first = p.join(' '); if (!c.last) { c.last = c.first; c.first = ''; } }
+    }
+    if (!FIELDS.some(([k]) => c[k])) continue;
+    const dk = dupKey(c);
+    if ($('impSkipDup').checked && seen.has(dk)) { skipped++; continue; }
+    seen.add(dk); db.contacts.push(c); added++;
+  }
+  save(); $('dlgImport').close(); render();
+  alert(`Imported ${added} contacts.` + (skipped ? ` Skipped ${skipped} duplicates.` : ''));
+};
+
+// ---------- Labels ----------
+$('lblTpl').innerHTML = Object.entries(TEMPLATES).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join('');
+function labelContacts() {
+  const v = $('lblWho').value;
+  const base = v === 'selected' ? db.contacts.filter(c => selected.has(c.id)) : v === 'shown' ? filtered() : v === 'xmas' ? db.contacts.filter(c => c.christmas) : db.contacts;
+  return base.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+}
+function updateLblInfo() {
+  const l = labelContacts(), withAddr = l.filter(hasAddress).length, t = TEMPLATES[$('lblTpl').value];
+  $('skipWrap').style.display = t.env ? 'none' : '';
+  $('retWrap').style.display = t.env ? '' : 'none';
+  const a4 = t.pageW && Math.abs(t.pageW - 210 / 25.4) < 0.01;
+  $('lblHint').innerHTML = t.env
+    ? 'Print settings: set the paper size to match the envelope (or your printer’s envelope setting), <b>landscape</b>, scale <b>100%</b>, margins <b>None</b>. Feed envelopes as your printer’s manual shows. Test on plain paper first.'
+    : `Print settings: paper <b>${a4 ? 'A4' : 'Letter'}</b>, scale <b>100% / “Actual size”</b>, margins <b>None</b>. Test on plain paper first.`;
+  if (t.env) { $('lblInfo').textContent = `${withAddr} envelopes will print, one per page (${l.length - withAddr} contacts without an address are skipped).`; return; }
+  const per = t.cols * t.rows;
+  $('lblInfo').textContent = `${withAddr} labels will print (${l.length - withAddr} contacts without an address are skipped) — about ${Math.ceil((withAddr + (+$('lblSkip').value || 0)) / per)} sheet(s).`;
+}
+$('btnLabels').onclick = () => {
+  $('lblReturn').value = db.returnAddr || '';
+  $('lblWho').innerHTML = (selected.size ? `<option value="selected">Selected contacts (${selected.size})</option>` : '') +
+    `<option value="shown">Contacts currently shown (${filtered().length})</option><option value="xmas">Christmas card list (${db.contacts.filter(c => c.christmas).length})</option><option value="all">All contacts (${db.contacts.length})</option>`;
+  updateLblInfo(); $('dlgLabels').showModal();
+};
+['lblTpl', 'lblWho', 'lblSkip'].forEach(id => $(id).addEventListener('input', updateLblInfo));
+$('lblCancel').onclick = () => $('dlgLabels').close();
+$('lblPrint').onclick = () => {
+  const t = TEMPLATES[$('lblTpl').value];
+  const per = t.env ? 1 : t.cols * t.rows;
+  const items = (t.env ? [] : Array(Math.max(0, +$('lblSkip').value || 0)).fill(null)).concat(labelContacts().filter(hasAddress));
+  if (!items.length) { alert('Nothing to print.'); return; }
+  const fs = +$('lblFont').value || 10;
+  const PW = t.pageW || 8.5, PH = t.pageH || 11;
+  $('pageStyle').textContent = `@page { size: ${PW}in ${PH}in; margin: 0; }`;
+  let html = '';
+  const ret = ($('lblReturn').value || '').trim();
+  if (t.env) { db.returnAddr = ret; save(); }
+  for (let p = 0; p < items.length; p += per) {
+    html += `<div class="page" style="width:${PW}in;height:${PH - 0.02}in">`;
+    if (t.env) {
+      const c = items[p];
+      const lines = [c.addressee || [c.first, c.last].filter(Boolean).join(' '), c.org && (c.first || c.last || c.addressee) ? c.org : '', c.addr1, c.addr2, cityLine(c),
+        /^(us|usa|united states( of america)?)$/i.test(c.country || '') ? '' : c.country].filter(Boolean);
+      if (ret) html += `<div class="label" style="left:.3in;top:.3in;width:${PW * 0.4}in;height:auto;font-size:${Math.max(fs - 2, 7)}pt;white-space:pre-line;justify-content:flex-start;padding:0">${esc(ret)}</div>`;
+      html += `<div class="label" style="left:${PW * 0.38}in;top:${PH * 0.42}in;width:${PW * 0.58}in;height:auto;font-size:${fs + 2}pt;padding:0">${lines.map(esc).join('<br>')}</div></div>`;
+      continue;
+    }
+    items.slice(p, p + per).forEach((c, i) => {
+      if (!c) return;
+      const col = i % t.cols, row = Math.floor(i / t.cols);
+      const lines = [c.addressee || [c.first, c.last].filter(Boolean).join(' '), c.org && (c.first || c.last || c.addressee) ? c.org : (c.addressee || c.first || c.last ? '' : c.org), c.addr1, c.addr2, cityLine(c),
+        /^(us|usa|united states( of america)?)$/i.test(c.country || '') ? '' : c.country].filter(Boolean);
+      html += `<div class="label" style="left:${t.left + col * (t.w + t.hgap)}in;top:${t.top + row * (t.h + t.vgap)}in;width:${t.w}in;height:${t.h}in;font-size:${fs}pt">${lines.map(esc).join('<br>')}</div>`;
+    });
+    html += '</div>';
+  }
+  $('sheet').innerHTML = html;
+  $('dlgLabels').close();
+  setTimeout(() => window.print(), 100);
+};
+
+load().then(() => { db.contacts.forEach(migrate); render(); });
+})();
+</script>
+</body>
+</html>
