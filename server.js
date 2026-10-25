@@ -1,7 +1,7 @@
 'use strict';
 // Address book server: serves index.html and stores all data in one JSON file.
 // Only accepts connections from allowed networks (default: 192.168.0.0/24, plus loopback).
-// Zero dependencies. Usage: node server.js   (env: PORT, DATA_FILE, ALLOW="cidr,cidr")
+// Zero dependencies. Usage: node server.js   (env: HOST, PORT, DATA_FILE, ALLOW="cidr,cidr")
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -76,6 +76,7 @@ const server = http.createServer((req, res) => {
 // Refuse disallowed clients at the TCP level, before any HTTP is parsed.
 server.on('connection', sock => { if (!isAllowed(sock.remoteAddress)) sock.destroy(); });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Address book on port ${PORT}; data: ${DATA_FILE}; allowed: 127.0.0.0/8, ::1, ${ALLOW.join(', ')}`);
+const HOST = process.env.HOST || '0.0.0.0';
+server.listen(PORT, HOST, () => {
+  console.log(`Address book on ${HOST}:${PORT}; data: ${DATA_FILE}; allowed: 127.0.0.0/8, ::1, ${ALLOW.join(', ')}`);
 });

@@ -1,0 +1,29 @@
+# Install as /etc/systemd/system/address-book.service
+# Assumes the app is in /opt/address-book and Node is at /usr/bin/node (check with: which node)
+[Unit]
+Description=Address Book server
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+# Data lives in /var/lib/address-book (created automatically, owned by the service user)
+StateDirectory=address-book
+WorkingDirectory=/opt/address-book
+ExecStart=/usr/bin/node /opt/address-book/server.js
+Environment=PORT=3000
+Environment=HOST=0.0.0.0
+Environment=ALLOW=192.168.0.0/24
+Environment=DATA_FILE=/var/lib/address-book/contacts.json
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/address-book
+
+[Install]
+WantedBy=multi-user.target
